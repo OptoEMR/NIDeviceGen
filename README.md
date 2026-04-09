@@ -3,7 +3,7 @@
 Controls an **NI SMU (nidcpower)** and an **NI Digital Pattern Instrument
 (nidigital)** over a custom gRPC service.  A Tkinter GUI lets you configure
 every parameter, run a test, and view HRAM failures logged to a TDMS file.
-
+Just adding something
 ---
 
 ## Project Layout
