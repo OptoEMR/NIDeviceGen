@@ -1,0 +1,12 @@
+# ── Core gRPC ──────────────────────────────────────────────────────────────
+grpcio>=1.60.0
+grpcio-tools>=1.60.0           # needed only to regenerate stubs
+protobuf>=4.25.0
+
+# ── NI Instrument Drivers ──────────────────────────────────────────────────
+nidcpower~=1.4.9               # NI-DCPower (SMU)
+nidigital~=1.4.9               # NI-Digital Pattern Driver
+
+# ── TDMS Logging ──────────────────────────────────────────────────────────
+npTDMS>=1.8.0
+numpy>=1.24.0

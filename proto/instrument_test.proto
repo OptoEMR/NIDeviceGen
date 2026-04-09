@@ -1,0 +1,135 @@
+syntax = "proto3";
+
+package instrument_test;
+
+// ---------------------------------------------------------------------------
+// Service definition
+// ---------------------------------------------------------------------------
+service InstrumentTestService {
+  // Configure/initialize the NI-DCPower SMU session
+  rpc ConfigureSMU(SMUConfig) returns (StatusResponse);
+
+  // Configure/initialize the NI-Digital Pattern Instrument session
+  rpc ConfigureDigital(DigitalConfig) returns (StatusResponse);
+
+  // Configure HRAM (History RAM) acquisition settings
+  rpc ConfigureHRAM(HRAMConfig) returns (StatusResponse);
+
+  // Execute a full test: enable SMU output, burst pattern, collect failures
+  rpc RunTest(RunTestRequest) returns (RunTestResponse);
+
+  // Abort an in-progress pattern burst
+  rpc AbortTest(Empty) returns (StatusResponse);
+
+  // Query the current status of both instruments
+  rpc GetStatus(Empty) returns (SystemStatus);
+
+  // Cleanly close both instrument sessions on the server
+  rpc Shutdown(Empty) returns (StatusResponse);
+}
+
+// ---------------------------------------------------------------------------
+// SMU Configuration
+// ---------------------------------------------------------------------------
+message SMUConfig {
+  string resource_name        = 1;  // e.g. "PXI1Slot2"
+  string channel              = 2;  // e.g. "0" or "0,1"
+  double voltage_level        = 3;  // Volts (DC)
+  double current_limit        = 4;  // Amps
+  double voltage_level_range  = 5;  // 0 = auto-range
+  double current_limit_range  = 6;  // 0 = auto-range
+  string sense                = 7;  // "LOCAL" or "REMOTE"
+  double source_delay         = 8;  // seconds before measurement (0 = default)
+  string output_function      = 9;  // "DC_VOLTAGE" (default) or "DC_CURRENT"
+  bool   simulate             = 10; // open a simulated driver session
+}
+
+// ---------------------------------------------------------------------------
+// Digital Pattern Instrument Configuration
+// ---------------------------------------------------------------------------
+message DigitalConfig {
+  string resource_name   = 1;  // e.g. "PXI1Slot3"
+  string pin_map_file    = 2;  // Full path to *.pinmap
+  string pattern_file    = 3;  // Full path to *.digipat
+  string levels_file     = 4;  // Full path to *.digilevels
+  string timing_file     = 5;  // Full path to *.digitiming
+  string start_label     = 6;  // Pattern start label (used in RunTest)
+  repeated int32 sites   = 7;  // Active site numbers (empty = all)
+  bool   simulate        = 8;  // open a simulated driver session
+}
+
+// ---------------------------------------------------------------------------
+// HRAM (History RAM) Configuration
+// ---------------------------------------------------------------------------
+message HRAMConfig {
+  // FIRST_FAILURE | CYCLE_NUMBER | PATTERN_LABEL
+  string trigger_type              = 1;
+  int32  max_samples_per_site      = 2;  // max HRAM captures per site
+  // FAILED | ALL
+  string cycles_to_acquire         = 3;
+  int32  pretrigger_samples        = 4;
+  bool   number_of_samples_finite  = 5;
+}
+
+// ---------------------------------------------------------------------------
+// Run Test Request
+// ---------------------------------------------------------------------------
+message RunTestRequest {
+  string tdms_log_file = 1;   // Output TDMS file path (must end in .tdms)
+  string start_label   = 2;   // Override digital start_label (leave empty to use the one from DigitalConfig)
+  double timeout       = 3;   // Seconds to wait for burst completion (0 = 10 s)
+}
+
+// ---------------------------------------------------------------------------
+// Individual HRAM Failure Record
+// ---------------------------------------------------------------------------
+message HRAMFailure {
+  int32            site_number         = 1;
+  int64            cycle_number        = 2;
+  string           pattern_name        = 3;
+  string           time_set_name       = 4;
+  int64            vector_number       = 5;
+  int64            scan_cycle_number   = 6;
+  repeated string  pin_names           = 7;
+  repeated string  expected_states     = 8;
+  repeated string  actual_states       = 9;
+  repeated bool    per_pin_pass_fail   = 10;
+}
+
+// ---------------------------------------------------------------------------
+// Run Test Response
+// ---------------------------------------------------------------------------
+message RunTestResponse {
+  bool                   success          = 1;
+  string                 message          = 2;
+  bool                   test_passed      = 3;
+  repeated HRAMFailure   failures         = 4;
+  string                 tdms_file_path   = 5;
+  map<int32, bool>       site_pass_fail   = 6;
+  int64                  total_failures   = 7;
+}
+
+// ---------------------------------------------------------------------------
+// Generic Status Response
+// ---------------------------------------------------------------------------
+message StatusResponse {
+  bool   success = 1;
+  string message = 2;
+}
+
+// ---------------------------------------------------------------------------
+// System Status (returned by GetStatus)
+// ---------------------------------------------------------------------------
+message SystemStatus {
+  bool   smu_initialized     = 1;
+  bool   digital_initialized = 2;
+  string smu_resource        = 3;
+  string digital_resource    = 4;
+  double configured_voltage  = 5;
+  string hram_trigger_type   = 6;
+}
+
+// ---------------------------------------------------------------------------
+// Empty placeholder
+// ---------------------------------------------------------------------------
+message Empty {}
